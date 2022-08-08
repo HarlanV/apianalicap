@@ -85,7 +85,7 @@ class PurchasedFactor(models.Model):
         db_table = "purchase_factor"
 
     def __str__(self):
-        return str(self.description + "(" + self.material + ")")
+        return str(self.subequipment.description + "(" + str(self.subequipment.material) + ")")
 
 
 # Informações para correção de preço devido a pressão

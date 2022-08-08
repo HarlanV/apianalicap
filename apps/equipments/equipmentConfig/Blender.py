@@ -10,7 +10,6 @@ class Blender (GenericEquipment):
         # equipmentService, equipment, subequipmentsList
 
         if args is None:
-
             super().__init__(id)
         else:
             super().__init__(id, args)
@@ -25,7 +24,6 @@ class Blender (GenericEquipment):
         form = {}
         dimension = self.equipment.dimension.dimension.dimension
         unity = self.equipment.dimension.unity
-        teste_print(unity)
         for se in sl.values():
             form[se["id"]] = {
                 'id': se["id"],
@@ -45,11 +43,29 @@ class Blender (GenericEquipment):
         }
         """
         return {
-            "id": "int",
-            "volume": "decimal",
+            "data": {
+                "id": "int",
+                "volume": "decimal",
+                "create": "boolean",
+                "spares": "int"
+            }
         }
 
-    def getFobCost(self) -> dict:
-        teste_print("chegou aqui!!")
+    def formatedEstimative(self, data):
 
-        return{"custo": 2000.00}
+        # insere um valor com nome padrão, para facilitar a consulta 
+        dimension = data[(self.equipment.dimension.dimension.dimension.lower())]
+        data["dimension"] = dimension
+
+        check = self.checkEstimativeConditions(data)
+        if check["checked"] is True:
+            data = self.fobEstimate(data)
+            status_code = 200
+        else:
+            status_code = 400
+            data = {"message": check["message"]}
+
+        return {
+            "status_code": status_code,
+            "data": data
+        }

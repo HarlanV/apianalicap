@@ -4,6 +4,8 @@ from django.shortcuts import render
 from django.views.generic import View
 from equipments.services.EquipmentService import EquipmentService
 from equipments.services.dev_suport import teste_print
+import json
+
 # Create your views here.
 
 
@@ -78,8 +80,9 @@ class EquipmentApi(View):
             form = self.getFormInfoToCreate(id)
             data = self.service.sampleDictSerialize(form)
         elif request.method == "POST":
-            data = self.postCreateEquipment(id)
-
+            data_form = json.loads(request.body.decode("utf-8"))["data"]
+            data = self.postCreateEquipment(id, data_form)
+            data = self.service.sampleDictSerialize(data)
         return HttpResponse(
             data,
             content_type="application/json"
@@ -88,5 +91,5 @@ class EquipmentApi(View):
     def getFormInfoToCreate(self, id):
         return self.service.getEquipmentForm(id)
 
-    def postCreateEquipment(self, id):
-        return self.service.getEquipmentForm(id)
+    def postCreateEquipment(self, id, data):
+        return self.service.postEquipmentForm(id, data)

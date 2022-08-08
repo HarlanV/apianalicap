@@ -46,10 +46,11 @@ class EquipmentService():
         var = model_to_dict(data)
         return json.dumps(var)
 
-    def getSubEquipment(self, id):
+    def getSubEquipment(self, id) -> SubEquipment:
         """
         Retorna um sub-equipamento dado seu id
         """
+        teste = SubEquipment.objects.get(id=id) 
         return SubEquipment.objects.get(id=id)
 
     def listSubEquipment(self):
@@ -64,15 +65,23 @@ class EquipmentService():
         """
         return SubEquipment.objects.filter(equipment=equipment_id)
 
-    def getEquipmentForm(self, id):
+    def getEquipmentForm(self, id) -> dict:
+        """
+        Retorna um dict com as opções disponiveis de subequipamento, bem como
+        modelo de formulario para gerar orçamento
+        """
         equipmentInstance = self.findEquipmentPath(id)
         subList = equipmentInstance.listAvailableSubequipment()
         form = equipmentInstance.mapDataToCreate()
-        teste = {
+        return {
             "available": subList,
-            "post_map": form
+            "model": form
         }
-        return teste
+
+    def postEquipmentForm(self, id, data):
+        equipmentInstance = self.findEquipmentPath(id)
+        formatedEstimative = equipmentInstance.formatedEstimative(data)
+        return formatedEstimative["data"]
 
     # Função auxiliar para chamar dinamicamente os modulos de equipamentos
     def findEquipmentPath(self, id: int, args=None):

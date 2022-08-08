@@ -10,10 +10,11 @@ class EquipmentService():
     def __init__(self) -> None:
         pass
 
-    def getEquipmentById(self, id, serialize=False):
+    def getEquipmentById(self, id):
         """
         Retorna um equipamento informado o id
         """
+
         return Equipment.objects.get(id=id)
 
     def getAllEquipments(self):
@@ -61,10 +62,42 @@ class EquipmentService():
         """
         Retorna uma lista de subequipamentos dados o id do equipamento
         """
-        teste = SubEquipment.objects.filter(equipment=equipment_id)
-        return teste
-        # equipment = self.getEquipmentById(equipment_id)
+        return SubEquipment.objects.filter(equipment=equipment_id)
 
+    def getEquipmentForm(self, id):
+        equipmentInstance = self.findEquipmentPath(id)
+        subList = equipmentInstance.listAvailableSubequipment()
+        form = equipmentInstance.mapDataToCreate()
+        teste = {
+            "available": subList,
+            "post_map": form
+        }
+        return teste
+
+    # Função auxiliar para chamar dinamicamente os modulos de equipamentos
+    def findEquipmentPath(self, id: int, args=None):
+        """
+        args = variáveis nescessárias para instacia da classe
+
+
+        """
+        equipment = Equipment.objects.get(id=id)
+        name = equipment.name.title().replace("-", "").replace(" ", "")
+
+        equipmentPath = "equipments.equipmentConfig." + name
+        equipmentClass = name
+        mod = __import__(equipmentPath, fromlist=[equipmentClass])
+        response = getattr(mod, equipmentClass)(id=id)
+        return response
+
+        if args is not None:
+            response = getattr(mod, equipmentClass)(**args)
+        else:
+            response = getattr(mod, equipmentClass)()
+        return response
+
+    def sampleDictSerialize(self, data):
+        return json.dumps(data)
 
 # function não mais nescessária, mas que pode servir no futuro 
 #     def getAllEquipments(self, to_dict=False, serialize=False):

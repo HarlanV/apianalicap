@@ -9,65 +9,84 @@ from equipments.services.dev_suport import teste_print
 
 class EquipmentApi(View):
 
-    def getEquipment(request, id):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        # service principal a ser utilizado.
+        self.service = EquipmentService()
+
+    def getEquipment(self, request, id):
         """
         Retorna um equipamento dado seu id
         """
-        service = EquipmentService()
-        equipment = service.getEquipmentById(id)
+        equipment = self.service.getEquipmentById(id)
 
         return HttpResponse(
-            service.modelSerialize(equipment),
+            self.service.modelSerialize(equipment),
             content_type="application/json"
         )
 
-    def listEquipments(request):
+    def listEquipments(self, request):
         """
         Lista todos os equipamentos
         """
-        service = EquipmentService()
-        equipments = service.getAllEquipments()
+        equipments = self.service.getAllEquipments()
 
         # TODO: Colocar resultado para caso vazio.
         return HttpResponse(
-            service.querysetSerialize(equipments),
+            self.service.querysetSerialize(equipments),
             content_type="application/json"
         )
 
-    def getSubEquipment(request, id):
+    def getSubEquipment(self, request, id):
         """
         Retorna um sub-equipamento dado seu id
         """
-        service = EquipmentService()
-        subequipment = service.getSubEquipment(id)
+        subequipment = self.service.getSubEquipment(id)
 
         return HttpResponse(
-            service.modelSerialize(subequipment),
+            self.service.modelSerialize(subequipment),
             content_type="application/json"
         )
 
-    def listSubEquipment(request):
+    def listSubEquipment(self, request):
         """
         Retorna todos os sub-equipamentos cadastrados na base de dadoa
         """
-        service = EquipmentService()
-        subequipments = service.listSubEquipment()
+        subequipments = self.service.listSubEquipment()
 
         # TODO: Colocar resultado para caso vazio.
         return HttpResponse(
-            service.querysetSerialize(subequipments),
+            self.service.querysetSerialize(subequipments),
             content_type="application/json"
         )
 
-    def subEquipmentsFromEquipment(request, id):
+    def subEquipmentsFromEquipment(self, request, id):
         """
         Retorna uma lista de subequipamentos dados o id do equipamento
         """
-        service = EquipmentService()
-        subequipments = service.subEquipmentsFromEquipment(id)
+        subequipments = self.service.subEquipmentsFromEquipment(id)
 
         # TODO: Colocar resultado para caso vazio.
         return HttpResponse(
-            service.querysetSerialize(subequipments),
+            self.service.querysetSerialize(subequipments),
             content_type="application/json"
         )
+
+    def createEquipment(self, request, id):
+        if request.method == "GET":
+            form = self.getFormInfoToCreate(id)
+            data = self.service.sampleDictSerialize(form)
+        elif request.method == "POST":
+            data = self.postCreateEquipment(id)
+
+        return HttpResponse(
+            data,
+            content_type="application/json"
+        )
+
+    def getFormInfoToCreate(self, id):
+        return self.service.getEquipmentForm(id)
+
+    def postCreateEquipment(self, id):
+        return self.service.getEquipmentForm(id)

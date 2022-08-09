@@ -41,12 +41,15 @@ class ModeloEquipamento (GenericEquipment):
         """
         Retorna uma modelo de como deve ser enviado a informação para realizar orçamento do equipamento.
         """
+        # [atencao]: caso tenha sido personalizado o campo "dimension" em listAvailableSubequipment() e mapDataToCreate() deve
+        # conter o mesmo valor aqui. dimension = titulo do campo que retorna o valor enviado pelo usuario; Ex.:area, volume, etc
+        dimension = self.equipment.dimension.dimension.dimension
         return {
             "data": {
                 # [personalizavel]: informações necessárias para ser feio o orçamento. Será enviado ao usuário como orientação.
                 # "nome_do_campo": "tipo de dado aceito" -> Seguir este padrão
                 "id": "int",
-                "volume": "decimal",
+                str(dimension): "decimal",
                 "spares": "int",
                 "cepci": "int (alterar pra plant/unity)",
                 "create": "boolean",
@@ -55,8 +58,8 @@ class ModeloEquipamento (GenericEquipment):
 
     def formatedEstimative(self, data, equipment_id):
 
-        # [atencao]: caso tenha sido personalizado o campo "dimension" em listAvailableSubequipment(), deve conter o mesmo valor aqui.
-        # dimension = titulo do campo que retorna o valor enviado pelo usuario; Ex.: area, volume, etc
+        # [atencao]: caso tenha sido personalizado o campo "dimension" em listAvailableSubequipment() e mapDataToCreate() deve
+        # conter o mesmo valor aqui. dimension = titulo do campo que retorna o valor enviado pelo usuario; Ex.:area, volume, etc
         dimension = self.equipment.dimension.dimension.dimension.lower()
 
         dimension_value = data[(dimension)]

@@ -40,13 +40,14 @@ class Centrifuge (GenericEquipment):
     def mapDataToCreate(self) -> dict:
         """
         Retorna uma modelo de como deve ser enviado a informação para realizar orçamento do equipamento.
-        """
+    '   """
+        dimension = self.equipment.dimension.dimension.dimension.lower()
         return {
             "data": {
                 # [personalizavel]: informações necessárias para ser feio o orçamento. Será enviado ao usuário como orientação.
                 # "nome_do_campo": "tipo de dado aceito" -> Seguir este padrão
                 "id": "int",
-                "volume": "decimal",
+                str(dimension): "decimal",
                 "spares": "int",
                 "cepci": "int (alterar pra plant/unity)",
                 "create": "boolean",

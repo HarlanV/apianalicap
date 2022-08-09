@@ -94,20 +94,26 @@ class GenericEquipment():
         """
         return PurchasedFactor.objects.filter(subequipment=subequipment).get()
 
-    def checkEstimativeConditions(self, data) -> dict:
+    def checkEstimativeConditions(self, data, equipment_id) -> dict:
         # constants = PurchasedFactor.objects.filter(equipment_id=id, description=type).first()
         se = self.equipmentService.getSubEquipment(data["id"])
         self.subequipment = se
         # dimension = data[(self.equipment.dimension.dimension.dimension.lower())]
-        if data["dimension"] > se.max_dimension:
+        erro_message = "Não foi possível fazer a estimativa. "
+        if equipment_id != self.subequipment.equipment.id:
             return{
                 "checked": False,
-                "message": "Não foi possível fazer a estimativa. O valor informado foi acima do permitido (" + str(se.max_dimension) + self.equipment.dimension.unity + ")"
+                "message": erro_message + "O equipamento " + self.equipment.name + " não possui a opção '" + self.subequipment.description + "' (id:" + str(self.subequipment.id) + "). Favor verificar."
+            }
+        elif data["dimension"] > se.max_dimension:
+            return{
+                "checked": False,
+                "message": erro_message + "O valor informado foi acima do permitido (" + str(se.max_dimension) + self.equipment.dimension.unity + ")"
             }
         elif data["dimension"] < se.min_dimension:
             return{
                 "checked": False,
-                "message": "Não foi possível fazer a estimativa. O valor informado foi abaixo do permitido (" + str(se.min_dimension) + self.equipment.dimension.unity + ")"
+                "message": erro_message + "O valor informado foi abaixo do permitido (" + str(se.min_dimension) + self.equipment.dimension.unity + ")"
             }
         else:
             return{

@@ -80,7 +80,7 @@ class EquipmentService():
 
     def postEquipmentForm(self, id, data):
         equipmentInstance = self.findEquipmentPath(id)
-        formatedEstimative = equipmentInstance.formatedEstimative(data)
+        formatedEstimative = equipmentInstance.formatedEstimative(data, id)
         return formatedEstimative["data"]
 
     # Função auxiliar para chamar dinamicamente os modulos de equipamentos
@@ -97,12 +97,14 @@ class EquipmentService():
         equipmentClass = name
         mod = __import__(equipmentPath, fromlist=[equipmentClass])
         response = getattr(mod, equipmentClass)(id=id)
-        return response
 
-        if args is not None:
-            response = getattr(mod, equipmentClass)(**args)
-        else:
-            response = getattr(mod, equipmentClass)()
+        # O campo abaixo por ser nescessário para equipamentos mais complexos.
+        # Não remover até o final do desenvolvimento!
+        # if args is not None:
+        #     response = getattr(mod, equipmentClass)(**args)
+        # else:
+        #     response = getattr(mod, equipmentClass)()
+
         return response
 
     def sampleDictSerialize(self, data):

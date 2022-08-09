@@ -42,6 +42,14 @@ INSERT INTO pressure_factor (id, c1, c2, c3, pressure_min, pressure_max, subequi
 SELECT cpf.id, cpf.c1, cpf.c2, cpf.c3, cpf.pressure_min, cpf.pressure_max, cpf.equipment_id
 FROM teste_tcc.capex_pressure_factor as cpf;
 
+
+/* Tabela de fatores de pressão: pressure_factor */
+INSERT INTO baremodulefactor (id, c1, c2, c3, pressure_min, pressure_max, subequipment_id)
+SELECT cpf.id, cpf.c1, cpf.c2, cpf.c3, cpf.pressure_min, cpf.pressure_max, cpf.equipment_id
+FROM teste_tcc.capex_pressure_factor as cpf;
+
+
+
 /* Tabela de fatores de material: material_factor */
 INSERT INTO material_factor (id, b1, b2, fm, subequipment_id)
 SELECT cmf.id, cmf.b1, cmf.b2, cmf.fm , cmf.equipment_id 
@@ -66,7 +74,24 @@ SET e.num_of_subequipments = (
 UPDATE equipment e
 set e.active = TRUE;
 
+DELETE from teste_tcc.capex_baremodule where id = 4;
+DELETE from teste_tcc.capex_baremodule where id = 128;
 
+UPDATE purchase_factor pf
+SET pf.fbm = (
+	SELECT cb.fbm FROM teste_tcc.capex_baremodule as cb
+	WHERE pf.subequipment_id = cb.equipment_id);
+
+
+SELECT pf.id, pf.subequipment_id, cb.fbm FROM purchase_factor as pf
+LEFT JOIN teste_tcc.capex_baremodule as cb
+on pf.subequipment_id = cb.equipment_id;
+
+SELECT cb.*, cpf.description, cpf.id, ce.name FROM capex_baremodule as cb
+LEFT JOIN capex_purchase_factor as cpf
+ON cpf.id = cb.equipment_id
+LEFT JOIN capex_equipment as ce
+on ce.id = cpf.equipment_id;
 
 /* Consultas auxiliares */
 

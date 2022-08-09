@@ -82,6 +82,29 @@ SET pf.fbm = (
 	SELECT cb.fbm FROM teste_tcc.capex_baremodule as cb
 	WHERE pf.subequipment_id = cb.equipment_id);
 
+/* Seta os materiais de referencia como os proprios quando CS */
+UPDATE purchase_factor pf
+LEFT JOIN sub_equipment as sub
+on sub.id = pf.subequipment_id
+SET pf.reference_material_id = pf.id
+WHERE sub.material="CS";
+
+/*Precisa ser rodadado id por id de equipment*/
+UPDATE purchase_factor pf
+LEFT JOIN sub_equipment as sub
+on sub.id = pf.subequipment_id
+LEFT JOIN equipment AS e
+ON e.id = sub.equipment_id
+SET pf.reference_material_id = (
+	SELECT npf.id from purchase_factor as npf
+	LEFT JOIN sub_equipment as nsub
+	on nsub.id = npf.subequipment_id
+	WHERE sub.description = nsub.description
+	and nsub.material="CS"
+)
+WHERE sub.material <> "CS"
+and e.id =3;
+
 
 SELECT pf.id, pf.subequipment_id, cb.fbm FROM purchase_factor as pf
 LEFT JOIN teste_tcc.capex_baremodule as cb
@@ -92,6 +115,53 @@ LEFT JOIN capex_purchase_factor as cpf
 ON cpf.id = cb.equipment_id
 LEFT JOIN capex_equipment as ce
 on ce.id = cpf.equipment_id;
+
+
+SELECT pf.id, pf.fbm, sub.description, e.name FROM purchase_factor AS pf
+LEFT JOIN sub_equipment as sub
+on sub.id = pf.subequipment_id
+LEFT JOIN equipment AS e
+ON e.id = sub.equipment_id
+
+
+SELECT pf.id, pf.fbm, sub.description, sub.material, e.name FROM purchase_factor AS pf
+LEFT JOIN sub_equipment as sub
+on sub.id = pf.subequipment_id
+LEFT JOIN equipment AS e
+ON e.id = sub.equipment_id
+WHERE e.id=3
+;
+
+
+
+UPDATE purchase_factor pf
+LEFT JOIN sub_equipment as sub
+on sub.id = pf.subequipment_id
+LEFT JOIN equipment AS e
+ON e.id = sub.equipment_id
+SET pf.reference_material_id = (
+	SELECT npf.id from purchase_factor as npf
+	LEFT JOIN sub_equipment as nsub
+	on nsub.id = npf.subequipment_id
+	WHERE sub.description = nsub.description
+	and nsub.material="CS"
+)
+WHERE sub.material <> "CS"
+and e.id =3;
+
+SELECT pf.id, pf.fbm, sub.description, sub.material, e.name, pf.reference_material_id FROM purchase_factor AS pf
+LEFT JOIN sub_equipment as sub
+on sub.id = pf.subequipment_id
+LEFT JOIN equipment AS e
+ON e.id = sub.equipment_id
+WHERE sub.material <> "CSS"
+AND sub.material <> "N/D"
+AND e.id = 3
+;
+
+;
+
+
 
 /* Consultas auxiliares */
 

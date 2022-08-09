@@ -1,6 +1,6 @@
+from apps.equipments.services.dev_suport import teste_print
 from equipments.equipmentConfig.GenericEquipment import GenericEquipment
 from equipments.services.EquipmentService import EquipmentService
-from apps.equipments.services.dev_suport import teste_print
 
 
 class Blender (GenericEquipment):
@@ -41,12 +41,15 @@ class Blender (GenericEquipment):
         """
         Retorna uma modelo de como deve ser enviado a informação para realizar orçamento do equipamento.
         """
+        # [atencao]: caso tenha sido personalizado o campo "dimension" em listAvailableSubequipment() e mapDataToCreate() deve
+        # conter o mesmo valor aqui. dimension = titulo do campo que retorna o valor enviado pelo usuario; Ex.:area, volume, etc
+        dimension = self.equipment.dimension.dimension.dimension
         return {
             "data": {
                 # [personalizavel]: informações necessárias para ser feio o orçamento. Será enviado ao usuário como orientação.
                 # "nome_do_campo": "tipo de dado aceito" -> Seguir este padrão
                 "id": "int",
-                "volume": "decimal",
+                str(dimension): "decimal",
                 "spares": "int",
                 "cepci": "int (alterar pra plant/unity)",
                 "create": "boolean",
@@ -55,18 +58,17 @@ class Blender (GenericEquipment):
 
     def formatedEstimative(self, data, equipment_id):
 
-        # [atencao]: caso tenha sido personalizado o campo "dimension" em listAvailableSubequipment(), deve conter o mesmo valor aqui.
-        # dimension = titulo do campo que retorna o valor enviado pelo usuario; Ex.: area, volume, etc
+        # [atencao]: caso tenha sido personalizado o campo "dimension" em listAvailableSubequipment() e mapDataToCreate() deve
+        # conter o mesmo valor aqui. dimension = titulo do campo que retorna o valor enviado pelo usuario; Ex.:area, volume, etc
         dimension = self.equipment.dimension.dimension.dimension.lower()
+
+        self.hasCostCorrections()
 
         dimension_value = data[(dimension)]
         data["dimension"] = dimension_value
         check = self.checkEstimativeConditions(data, equipment_id)
         if check["checked"] is True:
-            if data["create"] is True:
-                data = self.completeCostEstimate(data)
-            else:
-                data = self.previewCostEstimate(data)
+            data = self.generateCostEstimate(data, full_report=True)
             name = self.equipment.name + " - " + self.subequipment.description
             data["equipment"] = name
             status_code = 200
@@ -78,3 +80,6 @@ class Blender (GenericEquipment):
             "status_code": status_code,
             "data": data
         }
+
+    def hasCostCorrections(self):
+        super().hasCostCorrections()

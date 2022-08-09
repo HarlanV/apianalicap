@@ -3,7 +3,7 @@ from equipments.equipmentConfig.GenericEquipment import GenericEquipment
 from equipments.services.EquipmentService import EquipmentService
 
 
-class ModeloEquipamento (GenericEquipment):
+class Compressor (GenericEquipment):
 
     def __init__(self, id: int, args=None) -> None:
         # Define:
@@ -84,28 +84,7 @@ class ModeloEquipamento (GenericEquipment):
     # [personalizavel]: Caso o equipamento possua correções de custo quanto ao material, pressão ou semelhante, descomentar abaixo
     def hasCostCorrections(self):
         super().hasCostCorrections()
-        # self.list_cost_corrections["material"] = True
+        self.list_cost_corrections["material"] = True
         # self.list_cost_corrections["pressure"] = True
         # self.list_cost_corrections["specific_procedure"] = True
         # self.list
-
-    # [personalizavel]: Função ativavel descomentando "specific_procedure" em "hasCostCorrections"
-    # esta função é usada como substituição do metodo usual de calculo. Os termos comentados em seu
-    # interior (aqui abaixo) devem ser descomentados preenchidos com os valores adequados. Os métodos
-    # para encontralos são de opção do usuario. Para auxiliar, todos os valores armazenados no banco de
-    # dados referente ao equipamento selecionado já serão disponibilizados nas variaveis definidas
-    def specificCalculateCost(self, data):
-        super().specificCalculateCost(data)
-        # valores disponíveis:
-        # self.purchase_factor -> informações da tabela Purchase_Factor
-        # self.material_factor -> informações da tabela de Material_factor
-        # self.complement_constants -> informações da tabela Complement_Constants
-        # data -> informações passadas pelo usuário na requisição, na forma de dict
-
-        # Escreva aqui seu método ...
-
-        # self.base_cost = (float) ...
-        # self.purchase_equipment_cost = (float) ...
-        # self.bare_module_cost = (float) ...
-        # self.base_equipment_cost = (float) ...
-        # self.base_bare_module_cost = (float) ...

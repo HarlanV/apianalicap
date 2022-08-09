@@ -80,6 +80,7 @@ class PurchasedFactor(models.Model):
     fbm = models.FloatField(null=True, blank=True)
     reference_year = models.IntegerField(blank=True, null=True)
     is_reference = models.BooleanField(default=0, blank=True)
+    reference_material_id = models.IntegerField(default=0, blank=True)
     cepci = models.FloatField(null=True, blank=True)
 
     class Meta:

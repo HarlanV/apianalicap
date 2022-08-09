@@ -50,7 +50,7 @@ class EquipmentService():
         """
         Retorna um sub-equipamento dado seu id
         """
-        teste = SubEquipment.objects.get(id=id) 
+        teste = SubEquipment.objects.get(id=id)
         return SubEquipment.objects.get(id=id)
 
     def listSubEquipment(self):
@@ -107,16 +107,3 @@ class EquipmentService():
 
     def sampleDictSerialize(self, data):
         return json.dumps(data)
-
-# function não mais nescessária, mas que pode servir no futuro 
-#     def getAllEquipments(self, to_dict=False, serialize=False):
-#         equipments = Equipment.objects.all()
-#         if to_dict is True:
-#             teste_print("entrou 1")
-#             equipments = self.querySetToDict(equipments)
-#             if serialize is True:
-#                 teste_print("entrou 2")
-#                 equipments = json.dumps(equipments)
-#             # equipments = json.dumps(list(equipments.values()), cls=DjangoJSONEncoder)
-#         teste_print(equipments)
-#         return equipments

@@ -46,34 +46,53 @@ class GenericEquipment():
             dimension: "decimal",
         }
 
-    def fobEstimate(self, data):
-
+    def previewCostEstimate(self, data):
         pf = self.queryPurchaseBySubEquip(self.subequipment)
-        Di = data["dimension"]
-
-        aux1 = pf.k2 * math.log10(Di)
-        aux2 = pf.k3 * (math.log10(Di)**2)
-        cost = (10 ** (pf.k1 + aux1 + aux2)) * (data["spares"] + 1)
-        # self.baseCost = price
-        # return price
-
-        # teste_print(self.subequipment)
-        # constants = PurchasedFactor.objects.filter(equipment_id=id, description=type).first()
-        # self.set_purchase_constants(type, constants)
-        # self.k1 = constants.k1
+        fob = self.fobEstimate(data, pf)
+        base_cost = round(self.baseCost(fob, pf, data), 2)
+        bare_module_cost = round(self.bareModuleCost(base_cost, pf), 2)
 
         return {
             "estimative": {
-                "custo 1": cost,
-                "Custo 2": 456
+                "Base Cost": base_cost,
+                "Bare Module Cost": bare_module_cost
             }
         }
 
+    def completeCostEstimate(self, data):
+
+        pf = self.queryPurchaseBySubEquip(self.subequipment)
+        fob = self.fobEstimate(data, pf)
+        base_cost = round(self.baseCost(fob, pf, data), 2)
+        # calculo final
+        purchase_equipment_cost = base_cost
+        bare_module_cost = round(self.bareModuleCost(base_cost, pf), 2)
+        base_equipment_cost = base_cost
+        base_bare_module_cost = bare_module_cost
+
+        return {
+            "estimative": {
+                "Purchase Equipment Cost": purchase_equipment_cost,
+                "Bare Module Cost": bare_module_cost,
+                "Base Equipment Cost": base_equipment_cost,
+                "Base Bare Module Cost": base_bare_module_cost
+            }
+        }
+
+    def fobEstimate(self, data, pf=None):
+        if pf is None:
+            pf = self.queryPurchaseBySubEquip(self.subequipment)
+        di = data["dimension"]
+        aux1 = pf.k2 * math.log10(di)
+        aux2 = pf.k3 * (math.log10(di)**2)
+        cost = (10 ** (pf.k1 + aux1 + aux2)) * (data["spares"] + 1)
+        return cost
+
     def queryPurchaseBySubEquip(self, subequipment):
+        """
+        Consulta e retorna as constantes relativas ao custo de compra FOB do equipamento
+        """
         return PurchasedFactor.objects.filter(subequipment=subequipment).get()
-        teste = pf.k1
-        teste_print(teste)
-        return teste
 
     def checkEstimativeConditions(self, data) -> dict:
         # constants = PurchasedFactor.objects.filter(equipment_id=id, description=type).first()
@@ -95,3 +114,11 @@ class GenericEquipment():
                 "checked": True,
                 "message": None
             }
+
+    def baseCost(self, cost: float, pf: PurchasedFactor, data: dict) -> float:
+        old_cepci = pf.cepci
+        new_cepci = data["cepci"]
+        return ((cost * new_cepci) / old_cepci)
+
+    def bareModuleCost(self, cost: float, pf: PurchasedFactor) -> float:
+        return (cost * pf.fbm)

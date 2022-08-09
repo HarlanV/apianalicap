@@ -46,20 +46,24 @@ class Blender (GenericEquipment):
             "data": {
                 "id": "int",
                 "volume": "decimal",
+                "spares": "int",
+                "cepci": "int (alterar pra plant/unity)",
                 "create": "boolean",
-                "spares": "int"
             }
         }
 
-    def formatedEstimative(self, data):
+    def formatedEstimative(self, data, preview=True):
 
-        # insere um valor com nome padrão, para facilitar a consulta 
+        # insere um valor com nome padrão, para facilitar a consulta
         dimension = data[(self.equipment.dimension.dimension.dimension.lower())]
         data["dimension"] = dimension
 
         check = self.checkEstimativeConditions(data)
         if check["checked"] is True:
-            data = self.fobEstimate(data)
+            if data["create"] is True:
+                data = self.completeCostEstimate(data)
+            else:
+                data = self.previewCostEstimate(data)
             status_code = 200
         else:
             status_code = 400

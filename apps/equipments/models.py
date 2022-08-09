@@ -77,6 +77,7 @@ class PurchasedFactor(models.Model):
     k3 = models.FloatField(null=True)
     fixed_value = models.FloatField(null=True)
     subequipment = models.ForeignKey(SubEquipment, on_delete=models.CASCADE)
+    fbm = models.FloatField(null=True, blank=True)
     reference_year = models.IntegerField(blank=True, null=True)
     is_reference = models.BooleanField(default=0, blank=True)
     cepci = models.FloatField(null=True, blank=True)
@@ -117,6 +118,7 @@ class MaterialFactor(models.Model):
         db_table = "material_factor"
 
 
+# [TODO]: REMOVER TABELA
 # Fator de conversão de modulo vazio fbm
 class BareModule(models.Model):
     fbm = models.FloatField(null=True)

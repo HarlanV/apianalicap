@@ -72,6 +72,8 @@ class ModeloEquipamento (GenericEquipment):
             self.hasCostCorrections()
             data = self.generateCostEstimate(data, full_report=True)
             name = self.equipment.name + " - " + self.subequipment.description
+            if self.subequipment.material != "N/D":
+                name = name + "(" + self.subequipment.material + ")"
             data["equipment"] = name
             status_code = 200
         else:
@@ -111,3 +113,12 @@ class ModeloEquipamento (GenericEquipment):
         # self.bare_module_cost = (float) ...
         # self.base_equipment_cost = (float) ...
         # self.base_bare_module_cost = (float) ...
+
+    def dataVarRename(self, data: dict) -> dict:
+        """
+        Regras de renomeação das variaveis enviadas pelo usuario para nomes padrões
+        Função utilizada para personalização de variável de cada equipamento
+        """
+        data = data
+        # Ex.: data["pressure"] = data["pressure_drop"]
+        return data

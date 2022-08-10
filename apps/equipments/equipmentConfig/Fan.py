@@ -3,7 +3,7 @@ from equipments.equipmentConfig.GenericEquipment import GenericEquipment
 from equipments.services.EquipmentService import EquipmentService
 
 
-class Crystallizer (GenericEquipment):
+class Fan (GenericEquipment):
 
     def __init__(self, id: int, args=None) -> None:
         # Define:
@@ -51,6 +51,8 @@ class Crystallizer (GenericEquipment):
                 "id": "int",
                 str(dimension): "decimal",
                 "spares": "int",
+                # [personlizavel]: caso seja necessário, descomentar o trecho abaixo
+                "pressure_drop": "float",
                 "cepci": "int (alterar pra plant/unity)",
                 "create": "boolean",
             }
@@ -62,15 +64,16 @@ class Crystallizer (GenericEquipment):
         # conter o mesmo valor aqui. dimension = titulo do campo que retorna o valor enviado pelo usuario; Ex.:area, volume, etc
         dimension = self.equipment.dimension.dimension.dimension.lower()
 
-        self.hasCostCorrections()
-
         dimension_value = data[(dimension)]
         data["dimension"] = dimension_value
         check = self.checkEstimativeConditions(data, equipment_id)
         if check["checked"] is True:
+            data = self.dataVarRename(data)
+            self.data = data
+            self.hasCostCorrections()
             data = self.generateCostEstimate(data, full_report=True)
             name = self.equipment.name + " - " + self.subequipment.description
-            if self.subequipment.material != "N/D":
+            if self.subequipment.material is not "N/D":
                 name = name + "(" + self.subequipment.material + ")"
             data["equipment"] = name
             status_code = 200
@@ -86,8 +89,11 @@ class Crystallizer (GenericEquipment):
     # [personalizavel]: Caso o equipamento possua correções de custo quanto ao material, pressão ou semelhante, descomentar abaixo
     def hasCostCorrections(self):
         super().hasCostCorrections()
-        # self.list_cost_corrections["material"] = True
-        # self.list_cost_corrections["pressure"] = True
+        self.list_cost_corrections["material"] = True
+        if self.data["pressure_drop"] < 0.01:
+            self.list_cost_corrections["pressure"] = True
+        else:
+            self.list_cost_corrections["pressure"] = False
         # self.list_cost_corrections["specific_procedure"] = True
         # self.list
 
@@ -111,3 +117,11 @@ class Crystallizer (GenericEquipment):
         # self.bare_module_cost = (float) ...
         # self.base_equipment_cost = (float) ...
         # self.base_bare_module_cost = (float) ...
+
+    def dataVarRename(self, data: dict) -> dict:
+        """
+        Regras de renomeação das variaveis enviadas pelo usuario para nomes padrões
+        Função utilizada para personalização de variável de cada equipamento
+        """
+        data["pressure"] = data["pressure_drop"]
+        return data

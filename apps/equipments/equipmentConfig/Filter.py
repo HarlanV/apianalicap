@@ -3,7 +3,7 @@ from equipments.equipmentConfig.GenericEquipment import GenericEquipment
 from equipments.services.EquipmentService import EquipmentService
 
 
-class Crystallizer (GenericEquipment):
+class Filter (GenericEquipment):
 
     def __init__(self, id: int, args=None) -> None:
         # Define:
@@ -51,6 +51,8 @@ class Crystallizer (GenericEquipment):
                 "id": "int",
                 str(dimension): "decimal",
                 "spares": "int",
+                # [personlizavel]: caso seja necessário, descomentar o trecho abaixo
+                # "pressure_drop": "float",
                 "cepci": "int (alterar pra plant/unity)",
                 "create": "boolean",
             }
@@ -62,15 +64,15 @@ class Crystallizer (GenericEquipment):
         # conter o mesmo valor aqui. dimension = titulo do campo que retorna o valor enviado pelo usuario; Ex.:area, volume, etc
         dimension = self.equipment.dimension.dimension.dimension.lower()
 
-        self.hasCostCorrections()
-
         dimension_value = data[(dimension)]
         data["dimension"] = dimension_value
         check = self.checkEstimativeConditions(data, equipment_id)
         if check["checked"] is True:
+            self.data = data
+            self.hasCostCorrections()
             data = self.generateCostEstimate(data, full_report=True)
             name = self.equipment.name + " - " + self.subequipment.description
-            if self.subequipment.material != "N/D":
+            if self.subequipment.material is not "N/D":
                 name = name + "(" + self.subequipment.material + ")"
             data["equipment"] = name
             status_code = 200

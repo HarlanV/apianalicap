@@ -70,6 +70,8 @@ class Centrifuge (GenericEquipment):
         if check["checked"] is True:
             data = self.generateCostEstimate(data, full_report=True)
             name = self.equipment.name + " - " + self.subequipment.description
+            if self.subequipment.material != "N/D":
+                name = name + "(" + self.subequipment.material + ")"
             data["equipment"] = name
             status_code = 200
         else:

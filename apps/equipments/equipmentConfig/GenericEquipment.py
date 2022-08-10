@@ -151,7 +151,7 @@ class GenericEquipment():
         lc = self.list_cost_corrections
 
         if lc["pressure"] is True:
-            pressure_factor = self.pressureFactorCalc(self.subequipment, data["pressure_drop"])
+            pressure_factor = self.pressureFactorCalc(self.subequipment, data["pressure"])
 
         if lc["material"] is True:
             sub_ref = self.equipmentService.getSubEquipment(pf.reference_material_id)

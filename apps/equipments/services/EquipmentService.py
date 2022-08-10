@@ -86,8 +86,6 @@ class EquipmentService():
     def findEquipmentPath(self, id: int, args=None):
         """
         args = variáveis nescessárias para instacia da classe
-
-
         """
         equipment = Equipment.objects.get(id=id)
         name = equipment.name.title().replace("-", "").replace(" ", "")

@@ -1,4 +1,4 @@
-from equipments.models import PurchasedFactor
+from equipments.models import PurchasedFactor, PressureFactor, SubEquipment
 from equipments.services.EquipmentService import EquipmentService
 from equipments.services.dev_suport import teste_print
 import math
@@ -75,11 +75,18 @@ class GenericEquipment():
         cost = (10 ** (pf.k1 + aux1 + aux2)) * (data["spares"] + 1)
         return cost
 
-    def queryPurchaseBySubEquip(self, subequipment):
+    def queryPurchaseBySubEquip(self, subequipment: SubEquipment):
         """
         Consulta e retorna as constantes relativas ao custo de compra FOB do equipamento
         """
+        teste_print(type(subequipment))
         return PurchasedFactor.objects.filter(subequipment=subequipment).get()
+
+    def queryPressureFactor(self, subequipment: SubEquipment):
+        """
+        Consulta e retorna as constantes relativas ao custo de compra FOB do equipamento
+        """
+        return PressureFactor.objects.filter(subequipment=subequipment).get()
 
     def checkEstimativeConditions(self, data, equipment_id) -> dict:
         # constants = PurchasedFactor.objects.filter(equipment_id=id, description=type).first()
@@ -127,13 +134,24 @@ class GenericEquipment():
             'specific_procedure': False
         }
 
+    def pressureFactorCalc(self, subequipment: SubEquipment, pressure: float):
+        pf_const = self.queryPressureFactor(subequipment)
+        aux1 = pf_const.c1
+        aux2 = pf_const.c2 * (math.log10(pressure))
+        aux3 = pf_const.c3 * (math.log10(pressure)**2)
+        return (10 ** (aux1 + aux2 + aux3))
+
     def calculateCosts(self, data: dict):
 
         pf = self.queryPurchaseBySubEquip(self.subequipment)
         fob = self.fobEstimate(data, pf)
         base_cost = round(self.baseCost(fob, pf, data), 2)
+        pressure_factor = 1
 
         lc = self.list_cost_corrections
+
+        if lc["pressure"] is True:
+            pressure_factor = self.pressureFactorCalc(self.subequipment, data["pressure_drop"])
 
         if lc["material"] is True:
             sub_ref = self.equipmentService.getSubEquipment(pf.reference_material_id)
@@ -141,22 +159,21 @@ class GenericEquipment():
             # Base cost, estimativa inicial
             self.base_cost = base_cost
             # Preço fob corrigido pelo material
-            self.purchase_equipment_cost = round((base_cost * (pf.fbm / pf_ref.fbm)), 2)
+            self.purchase_equipment_cost = round((base_cost * (pf.fbm / pf_ref.fbm)) * pressure_factor, 2)
             # BareModule to material
             self.bare_module_cost = round(self.bareModuleCost(base_cost, pf), 2)
             # Equipment Cost do equipamento CS
             self.base_equipment_cost = round(base_cost, 2)
             # Bare Module do equipamento CS
             self.base_bare_module_cost = round(base_cost * pf_ref.fbm, 2)
-        elif lc["pressure"] is True:
-            pass
+
         elif lc["specific_procedure"] is True:
             self.specificCalculateCost(self, data)
 
         else:
             self.base_cost = base_cost
             self.purchase_equipment_cost = base_cost
-            self.bare_module_cost = round(self.bareModuleCost(base_cost, pf), 2)
+            self.bare_module_cost = round(self.bareModuleCost(base_cost, pf) * pressure_factor, 2)
             self.base_equipment_cost = base_cost
             self.base_bare_module_cost = self.bare_module_cost
 

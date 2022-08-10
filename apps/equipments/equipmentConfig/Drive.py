@@ -3,7 +3,7 @@ from equipments.equipmentConfig.GenericEquipment import GenericEquipment
 from equipments.services.EquipmentService import EquipmentService
 
 
-class ModeloEquipamento (GenericEquipment):
+class Drive (GenericEquipment):
 
     def __init__(self, id: int, args=None) -> None:
         # Define:
@@ -51,8 +51,6 @@ class ModeloEquipamento (GenericEquipment):
                 "id": "int",
                 str(dimension): "decimal",
                 "spares": "int",
-                # [personlizavel]: caso seja necessário, descomentar o trecho abaixo
-                # "pressure_drop": "float",
                 "cepci": "int (alterar pra plant/unity)",
                 "create": "boolean",
             }
@@ -64,12 +62,12 @@ class ModeloEquipamento (GenericEquipment):
         # conter o mesmo valor aqui. dimension = titulo do campo que retorna o valor enviado pelo usuario; Ex.:area, volume, etc
         dimension = self.equipment.dimension.dimension.dimension.lower()
 
+        self.hasCostCorrections()
+
         dimension_value = data[(dimension)]
         data["dimension"] = dimension_value
         check = self.checkEstimativeConditions(data, equipment_id)
         if check["checked"] is True:
-            self.data = data
-            self.hasCostCorrections()
             data = self.generateCostEstimate(data, full_report=True)
             name = self.equipment.name + " - " + self.subequipment.description
             data["equipment"] = name

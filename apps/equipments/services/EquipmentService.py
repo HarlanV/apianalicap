@@ -50,7 +50,6 @@ class EquipmentService():
         """
         Retorna um sub-equipamento dado seu id
         """
-        teste = SubEquipment.objects.get(id=id)
         return SubEquipment.objects.get(id=id)
 
     def listSubEquipment(self):

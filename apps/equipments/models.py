@@ -1,4 +1,5 @@
 from django.db import models
+from equipments.services.dev_suport import teste_print
 import math
 
 
@@ -102,6 +103,7 @@ class PressureFactor(models.Model):
     pressure_max = models.FloatField(null=True)
     condition = models.CharField(max_length=300, null=True)
     subequipment = models.ForeignKey(SubEquipment, on_delete=models.CASCADE)
+    unityReference = models.ForeignKey(PhysicalUnit, on_delete=models.CASCADE, default=12)
 
     class Meta:
         db_table = "pressure_factor"
@@ -119,18 +121,21 @@ class MaterialFactor(models.Model):
         db_table = "material_factor"
 
 
-# [TODO]: REMOVER TABELA
-# Fator de conversão de modulo vazio fbm
-class BareModule(models.Model):
-    fbm = models.FloatField(null=True)
-    calculated = models.BooleanField(null=True)
+# Tabela Auxiliar para calculo do Cbm
+class BareModuleCostFactor(models.Model):
+    fbm = models.BooleanField(null=True)
+    fpressure = models.BooleanField(null=True)
+    material_correction = models.BooleanField(null=True)
+    specialMethod = models.BooleanField(null=True)
     subequipment = models.ForeignKey(SubEquipment, on_delete=models.CASCADE)
+    material_field_name = models.CharField(max_length=100, null=True)
+    pressure_field_name = models.CharField(max_length=100, null=True)
 
     def __str__(self):
-        return str(self.fbm)
+        return str(self.subequipment) + " bmcf"
 
     class Meta:
-        db_table = "baremodule_factor"
+        db_table = "baremodule_cost_factor"
 
 
 # Constantes complementares e auxiliares de equipamentos
@@ -147,170 +152,36 @@ class ComplementConstants(models.Model):
         db_table = "equipment_complement_constants"
 
 
-class BaseEquipment():
+class EspecialEquipmentsMethods():
 
-    def __init__(self):
-        return
-
-    # Retona as constante de custo do equipamento
-    def getEquipmentById(self, id):
-        self.equipment = Equipment.objects.get(id=id)
-        return self.equipment
-
-    # Função para calculo do valor de compra pela função logarítimica
-    def baseCostCalculate(self, E: float):
-        """
-        Função recebe um valor de especificação E (área, volume, etc) e calcula
-        o custo de compra básico (sem B.M.)
-        Obs: obrigatorio ter passado por 'define_purchase_constants()'
-        """
-        aux1 = self.k2 * math.log10(E)
-        aux2 = self.k3 * (math.log10(E)**2)
-        price = (10 ** (self.k1 + aux1 + aux2)) * (self.spares + 1)
-        self.baseCost = price
-        return price
-
-    # Seta as variáveis para calculo do custo de compra
-    def define_purchase_constants(self, type, constants):
-        """
-        Função para setar dentro da classe as constantes de compra depois de pesquisada
-        """
-        self.k1 = constants.k1
-        self.k2 = constants.k2
-        self.k3 = constants.k3
-        self.maxAttribute = constants.max_dimension
-        self.minAttribute = constants.min_dimension
-        self.type = type
-        self.reference_cepci = constants.cepci
-        self.purchase_id = constants.id
-        self.purchase_obj = constants
-
-    # Função auxiliar para arredondamento de valor significativo. Regra de capex no CAPCOST {encapsular}
-    def upRound(self, value):
-        """
-        função auxiliar aproxima value para o mais proximo do multiplo de (10^digits)
-        """
-        rounded = round(value)
-        if (rounded < 1):
-            digits = -3
-        else:
-            digits = -(3 - len(str(round(value))))
-
-        rounded = (round((value / (10**digits))) * (10**digits))
-        return rounded
-
-    # [ok] Retornas os custos do Bare Module
-    def get_equipment_price(self):
-        """
-        Função retorna um dicionário com os custos calculo Bare Module
-        """
-        prices = {
-            'Base Coast': round(self.baseCost),
-            'Bare Module Cost': round(self.bareModule)
-        }
-        return prices
-
-    # Função retorna/calcula o Fbm
-    def bareModuleFactor(self, isConstant=True, equipmentId=0):
-        if isConstant is True:
-            fbm = BareModule.objects.filter(equipment_id=self.purchase_id).first().fbm
-        else:
-            fbm = self.roughFbm(equipmentId)
-        return fbm
-
-    # Calcula o fbm pela definição
-    def roughFbm(self, equip_id):
-        materialFactors = MaterialFactor.objects.filter(equipment_id=equip_id).first()
-        self.materialFactors = materialFactors
-        fbm = (materialFactors.b1 + (materialFactors.b2 * materialFactors.fm * self.pressureFactor))
-        return fbm
-
-    def baseRoughFbm(self):
-        b1 = self.b1
-        b2 = self.b2
-        fM = 1
-        fP = 1
-        fbm = (b1 + (b2 * fM * fP))
-        return fbm
-
-    # [ok] Calculo do fator de pressão
-    def pressureFactorCalc(self, pressure):
-        const = PressureFactor.objects.filter(equipment=self.purchase_id).first()
-        aux1 = const.c1
-        aux2 = const.c2 * (math.log10(pressure))
-        aux3 = const.c3 * (math.log10(pressure)**2)
-        pressureFactor = 10 ** (aux1 + aux2 + aux3)
-
-        return pressureFactor
-
-    # [ok] Insere os dados já calculados no projeto
-    def insertIntoProject(self, project):
-        args = {
-            'purchased_factor': self.purchase_obj,
-            'equipment_code': self.findsEquipmentCode(project.projectNum),
-            'purchased_equip_cost': self.purchasedEquipmentCost,
-            'baremodule_cost': self.bareModuleCost,
-            'base_equipment_cost': self.baseEquipmentCost,
-            'base_baremodule_cost': self.baseBaremoduleCost,
-            'equipment': self.equipment,
-            'spares': self.spares,
-            'specification': self.specification,
-            'preference_unity': self.selectedUnity
-        }
-
-        # Nem todos os equipamentos possuem pressão. Campo nulable
-        try:
-            if self.pressure is not None:
-                args["pressure"] = self.pressure
-                args["pressureunity"] = self.pressureUnity
-        except AttributeError:
-            pass
-
-        equipment = project.insertEquipment(args)
-
-        project.updateCosts()
-
-        # configura os gastos de utilidades do equipamento. Deve ser sobrescrito na instância do equipamento
-        self.setUtilitiesField(equipment, project)
-        # equipment
-
-        return equipment
-
-    # [ok] Atualiza os dados já calculados no projeto
-    def updateInProject(self, project, equipmentProject):
-
-        # equipment code não é alterável (Regra de negócio até o momento)
-        args = {
-            'purchased_factor': self.purchase_obj,
-            'equipment_code': equipmentProject.equipment_code,
-            'purchased_equip_cost': self.purchasedEquipmentCost,
-            'baremodule_cost': self.bareModuleCost,
-            'base_equipment_cost': self.baseEquipmentCost,
-            'base_baremodule_cost': self.baseBaremoduleCost,
-            'equipment': self.equipment,
-            'spares': self.spares,
-            'specification': self.specification,
-            'preference_unity': self.selectedUnity
-        }
-
-        try:
-            if self.pressure is not None:
-                args["pressure"] = self.pressure
-                args["pressureunity"] = self.pressureUnity
-        except AttributeError:
-            pass
-
-        equipment = project.updateEquipment(args, equipmentProject)
-        equipment = project.updateCosts()
-        return equipment
-
-    # [ok] Função auxiliar para criar o código de Projeto do Equipamento {encapsular}
-    def findsEquipmentCode(self, numProject):
-        equipmentLetter = self.equipment.symbol
-        initial = equipmentLetter + (str(numProject)[:1])
-        query = EquipmentProject.objects.filter(equipment_code__contains=initial)
-        code = equipmentLetter + str(numProject + query.count() + 1)
-        return code
-
-    def setUtilitiesField(self, equipment=None, projec=None):
+    def __init__(self) -> None:
         pass
+
+    def calculateCosts(self, equipment):
+
+        # mapeamento de casos especiais
+        if equipment.id == 11:
+            return self.firedHeatersMethod
+
+    def especialFormSubequiments(self, equipment: Equipment, form: dict) -> dict:
+
+        if equipment.id == 11:
+            form["steam_superheat"] = "(Steam Based) decimal, °C;"
+            return form
+
+        return form
+
+    # Deixar como privado depois
+    def firedHeatersMethod(self):
+        pass
+
+    def baseCost(self):
+        pass
+
+    def calculateCostsNoFbm(self, data):
+        b1 = 1
+        b2 = 1
+        fm = 1
+        fp = 1
+        fbm = (b1 + (b2 * fm * fp))
+        base_cost = round(self.baseCost(pf, data, fbm), 2)

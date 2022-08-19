@@ -1,11 +1,11 @@
 import json
+from equipments.services.AuxiliarTools import Services
+from equipments.equipmentConfig.EquipmentReports import EquipmentReports
 from equipments.models import Equipment, SubEquipment
-from django.forms.models import model_to_dict
 from equipments.services.dev_suport import teste_print
-from django.core.serializers.json import DjangoJSONEncoder
 
 
-class EquipmentService():
+class EquipmentService(Services):
 
     def __init__(self) -> None:
         pass
@@ -22,29 +22,6 @@ class EquipmentService():
         Retorna um queryset com todos os equipamentos cadastrados na base
         """
         return Equipment.objects.all()
-
-    def querySetToDict(self, qs, id="id") -> dict:
-        """
-        Função auxiliar para converter um QuerySet em dicionario
-        obs: Não sendo utilizada no momento
-        """
-        var = {}
-        for q in qs.values():
-            var[q[id]] = dict(q)
-        return var
-
-    def querysetSerialize(self, data) -> str:
-        """
-        Recebe um queryset e converte em json
-        """
-        return json.dumps(list(data.values()), cls=DjangoJSONEncoder)
-
-    def modelSerialize(self, data) -> str:
-        """
-        Recebe os dados de uma model e converte em json
-        """
-        var = model_to_dict(data)
-        return json.dumps(var)
 
     def getSubEquipment(self, id) -> SubEquipment:
         """
@@ -69,19 +46,21 @@ class EquipmentService():
         Retorna um dict com as opções disponiveis de subequipamento, bem como
         modelo de formulario para gerar orçamento
         """
-        equipmentInstance = self.findEquipmentPath(id)
-        subList = equipmentInstance.listAvailableSubequipment()
-        form = equipmentInstance.mapDataToCreate()
+
+        report = EquipmentReports(id)
+        subList = report.listAvailableSubequipment()
+        form = report.mapDataToCreate()
         return {
             "available": subList,
             "model": form
         }
 
-    def postEquipmentForm(self, id, data):
-        equipmentInstance = self.findEquipmentPath(id)
-        formatedEstimative = equipmentInstance.formatedEstimative(data, id)
+    def postEquipmentForm(self, id, data: dict):
+        report = EquipmentReports(id)
+        formatedEstimative = report.costEstimateReport(data, id)
         return formatedEstimative["data"]
 
+    # [desativado]
     # Função auxiliar para chamar dinamicamente os modulos de equipamentos
     def findEquipmentPath(self, id: int, args=None):
         """
@@ -103,6 +82,3 @@ class EquipmentService():
         #     response = getattr(mod, equipmentClass)()
 
         return response
-
-    def sampleDictSerialize(self, data):
-        return json.dumps(data)

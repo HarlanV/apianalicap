@@ -53,3 +53,26 @@ class EquipmentService(Services):
     def postEquipmentForm(self, id, data: dict):
         report = EquipmentReports(id)
         return report.costEstimateReport(data, id)["data"]
+
+    # [desativado]
+    # Função auxiliar para chamar dinamicamente os modulos de equipamentos
+    def findEquipmentPath(self, id: int, args=None):
+        """
+        args = variáveis nescessárias para instacia da classe
+        """
+        equipment = Equipment.objects.get(id=id)
+        name = equipment.name.title().replace("-", "").replace(" ", "")
+
+        equipmentPath = "equipments.equipmentConfig." + name
+        equipmentClass = name
+        mod = __import__(equipmentPath, fromlist=[equipmentClass])
+        response = getattr(mod, equipmentClass)(id=id)
+
+        # O campo abaixo por ser nescessário para equipamentos mais complexos.
+        # Não remover até o final do desenvolvimento!
+        # if args is not None:
+        #     response = getattr(mod, equipmentClass)(**args)
+        # else:
+        #     response = getattr(mod, equipmentClass)()
+
+        return response

@@ -1,49 +1,53 @@
-from equipments.models import PurchasedFactor, PressureFactor, SubEquipment, Equipment, BareModuleCostFactor, EspecialEquipmentsMethods
+from equipments.models import PurchasedFactor, PressureFactor, SubEquipment, Equipment, CostMethodsGuide, MaterialFactor
 from equipments.services.AuxiliarTools import Services
 from equipments.services.dev_suport import teste_print
 import math
+from django.core.exceptions import ObjectDoesNotExist
 
 
-class GenericEquipment(EspecialEquipmentsMethods):
-    def __init__(self, id=None) -> None:
-        if id is not None:
-            self.equipment = self.getEquipmentById(id)
-            self.subequipmentsList = self.subEquipmentsFromEquipment(id)
+class BaseEquipment():
+    def __init__(self, id, cost=True) -> None:
+        self.equipment = self.getEquipmentById(id)
+        self.subequipmentsList = self.subEquipmentsFromEquipment(id)
+        if cost is True:
             self.has_cost_corrections = False
             self.list_cbm_factors = self.cbmEquipmentListFactors()
-        else:
-            pass
 
+    # Retorna um equipamento recebendo seu Id
     def getEquipmentById(self, id):
         """
         Retorna um equipamento informado o id
         """
         return Equipment.objects.get(id=id)
 
-    def subEquipmentsFromEquipment(self, equipment_id):
+    def subEquipmentsFromEquipment(self, equipment_id) -> SubEquipment:
         """
         Retorna uma lista de subequipamentos dados o id do equipamento
         """
         return SubEquipment.objects.filter(equipment=equipment_id)
 
     def getEquipmentPressureFactor(self):
+        teste = PressureFactor.objects.filter(subequipment__equipment=self.equipment).all()
+
         return PressureFactor.objects.filter(subequipment__equipment=self.equipment).all()
 
     def getSubEquipment(self, id) -> SubEquipment:
         """
         Retorna um sub-equipamento dado seu id
         """
-        return SubEquipment.objects.get(id=id)
+        teste_print(id)
+        q = SubEquipment.objects.get(id=id)
+        return q
 
     def setSubequipment(self, idSubequipment) -> SubEquipment:
         self.subequipment = self.getSubEquipment(idSubequipment)
         return self.subequipment
 
     def cbmEquipmentListFactors(self):
-        return BareModuleCostFactor.objects.filter(subequipment__equipment=self.equipment).all()
+        return CostMethodsGuide.objects.filter(subequipment__equipment=self.equipment).all()
 
-    def cbmSubequipmentListFactors(self, subequipment) -> BareModuleCostFactor:
-        return BareModuleCostFactor.objects.filter(subequipment=subequipment).get()
+    def cbmSubequipmentListFactors(self, subequipment) -> CostMethodsGuide:
+        return CostMethodsGuide.objects.filter(subequipment=subequipment).get()
 
     def listAvailableSubequipment(self) -> dict:
         """
@@ -77,11 +81,13 @@ class GenericEquipment(EspecialEquipmentsMethods):
             dimension: "decimal",
         }
 
-    def generateCostEstimate(self, data, full_report=False):
+    def generateCostEstimate(self, data) -> dict:
         # [TODO]: Colocar aqui estapas de validação e configuração
         self.data = data
         self.calculateCosts(data)
+        return self.exportCosts()
 
+    # Calculo do custo fob pelas equação. Equação A.1, Turton (2018)
     def fobEstimate(self, data, pf=None):
         if pf is None:
             pf = self.queryPurchaseBySubEquip(self.subequipment)
@@ -91,13 +97,15 @@ class GenericEquipment(EspecialEquipmentsMethods):
         cost = (10 ** (pf.k1 + aux1 + aux2)) * (data["spares"] + 1)
         return cost
 
-    def queryPurchaseBySubEquip(self, subequipment: SubEquipment):
+    # Consulta e retorna as constantes relativas ao custo de compra FOB do equipamento
+    def queryPurchaseBySubEquip(self, subequipment: SubEquipment) -> PurchasedFactor:
         """
         Consulta e retorna as constantes relativas ao custo de compra FOB do equipamento
         """
         return PurchasedFactor.objects.filter(subequipment=subequipment).get()
 
-    def queryPressureFactor(self, subequipment: SubEquipment, pressure: float):
+    # Consulta e retorna fator de pressã0
+    def queryPressureFactor(self, subequipment: SubEquipment, pressure: float) -> PressureFactor:
         """
         Consulta e retorna as constantes relativas ao custo de compra FOB do equipamento
         """
@@ -105,8 +113,7 @@ class GenericEquipment(EspecialEquipmentsMethods):
         p = PressureFactor.objects.filter(subequipment=subequipment, pressure_max__gte=pressure, pressure_min__lte=pressure)
         results = p.count()
         if results < 1:
-            # lançar erro aqui.
-            pass
+            raise ValueError("Valores de pressão incorretos ou não encontrados. Por favor, verifique as especificações.")
         elif results > 1:
             # Resultado exatamente no limiar. Escolhe-se o superior aumentando em 1% a presão
             pressure = pressure + pressure * 0.01
@@ -114,38 +121,28 @@ class GenericEquipment(EspecialEquipmentsMethods):
         else:
             return p.get()
 
-    def checkEstimativeConditions(self, data: dict, equipment_id, factors: BareModuleCostFactor) -> dict:
-        # constants = PurchasedFactor.objects.filter(equipment_id=id, description=type).first()
+    def checkEstimativeConditions(self, data: dict, equipment_id, guide: CostMethodsGuide) -> dict:
+
         se = self.getSubEquipment(data["id"])
+
         self.subequipment = se
         # dimension = data[(self.equipment.dimension.dimension.dimension.lower())]
         erro_message = "Não foi possível fazer a estimativa. "
 
         if equipment_id != self.subequipment.equipment.id:
-            return{
-                "checked": False,
-                "message": erro_message + "O equipamento " + self.equipment.name + " não possui a opção '" + self.subequipment.description + "' (id:" + str(self.subequipment.id) + "). Favor verificar."
-            }
+            message = erro_message + "O equipamento " + self.equipment.name + " não possui a opção '" + self.subequipment.description + "' (id:" + str(self.subequipment.id) + "). Favor verificar."
+            raise ValueError(message)
+
         elif data["dimension"] > se.max_dimension:
-            return{
-                "checked": False,
-                "message": erro_message + "O valor informado foi acima do permitido (" + str(se.max_dimension) + self.equipment.dimension.unity + ")"
-            }
+            message = erro_message + "O valor informado foi acima do permitido (" + str(se.max_dimension) + self.equipment.dimension.unity + ")"
+            raise ValueError(message)
+
         elif data["dimension"] < se.min_dimension:
-            return{
-                "checked": False,
-                "message": erro_message + "O valor informado foi abaixo do permitido (" + str(se.min_dimension) + self.equipment.dimension.unity + ")"
-            }
+            message = erro_message + "O valor informado foi abaixo do permitido (" + str(se.min_dimension) + self.equipment.dimension.unity + ")"
+            raise ValueError(message)
         elif 'pressure' not in data.keys() and self.hasPressure() is True:
-            return{
-                "checked": False,
-                "message": erro_message + "Confira se todos as informações necessárias foram enviadas."
-            }
-        else:
-            return{
-                "checked": True,
-                "message": None
-            }
+            message = erro_message + "Confira se todos as informações necessárias foram enviadas."
+            raise ValueError(message)
 
     def inflationCorretion(self, data, method="cepci") -> float:
         if method == "cepci":
@@ -164,15 +161,55 @@ class GenericEquipment(EspecialEquipmentsMethods):
         inflation = self.inflationCorretion(data)
         return(cost * inflation)
 
-    def calculateFbm(self):
-        return 1
+    def getFbm(self, pf, isRef: bool, calculate: bool):
 
-    def bareModuleCost(self, cost: float, pf: PurchasedFactor, factors: BareModuleCostFactor) -> float:
-        if factors.fbm is True:
-            return (cost * pf.fbm)
+        # fbm tabelado do material desejado
+        if calculate is False and isRef is False:
+            fbm = pf.fbm
+        # fbm tabelado em ambiente e CS
+        elif calculate is False and isRef is True:
+            sub_ref = self.getSubEquipment(pf.reference_material_id)
+            fbm = self.queryPurchaseBySubEquip(sub_ref).fbm
+        # fbm calculado do material desejado
+        elif calculate is True and isRef is False:
+            fbm = self.calculateFbm(self.data, False)
+        elif calculate is True and isRef is True:
+            fbm = self.calculateFbm(self.data, True)
         else:
-            fbm = self.calculateFbm()
-            return (cost * fbm)
+            # [TODO]: colocar error aqui
+            return None
+        return fbm
+
+    # def getFbm(self, pf, guide, isRef=False, calculate=False,):
+    #     if calculate is False:
+    #         fbm = pf.fbm
+    #     else:
+    #         fbm = self.calculateFbm(self.data, isRef)
+    #     return fbm
+
+    def calculateFbm(self, data: dict, isRef: bool):
+        factors = MaterialFactor.objects.filter(subequipment=self.subequipment).get()
+        b1 = factors.b1
+        b2 = factors.b2
+        if isRef is False:
+            fm = factors.fm
+            fp = self.pressureFactorCalc(self.subequipment, data["pressure"])
+        # para condições de ambiente e CS, temos os valores como unidade
+        else:
+            fm = 1
+            fp = 1
+        fbm = b1 + (b2 * fm * fp)
+
+        return fbm
+
+    def bareModuleCost(self, cost: float, pf: PurchasedFactor, guide: CostMethodsGuide) -> float:
+        calculate = not guide.fbm
+        fbm = self.getFbm(pf, False, calculate)
+        # if guide.fbm is True:
+        #     return (cost * pf.fbm)
+        # else:
+        #     fbm = self.calculateFbm(self.data)
+        return (cost * fbm)
 
     def setCbmProcedure(self):
         """
@@ -201,44 +238,43 @@ class GenericEquipment(EspecialEquipmentsMethods):
                 return True
         return False
 
-    # calculateCosts
     def calculateCosts(self, data: dict):
 
         # Retorna tabela booleana de configuração para calculo do baremodule
-        factors = self.cbmSubequipmentListFactors(self.subequipment)
+        guide = self.guide
+
         # Import necessary data and calculate basic cost (already )
         pf = self.queryPurchaseBySubEquip(self.subequipment)
 
-        if factors.fbm is True:
-            fbm = pf.fbm
-        else:
-            fbm = self.calculateFbm()
-
-        # Fatores Padrões de bm, para caso não haja correção de material ou pressão
-        pressure_factor = 1
-        fbm_ref = pf.fbm
-
-        # Caso haja algum metodo especifico do equipamento...
-        if factors.specialMethod is True:
-            return self.specificCalculateCost(self, data)
-
-        # Caso não haja metodo especial...
-        # ... mas tenha correção da pressão
-        if factors.fpressure is True:
+        if guide.fpressure is True and guide.fbm is True:
             pressure_factor = self.pressureFactorCalc(self.subequipment, data["pressure"])
-        # ... mas tenha correção de material
-        if factors.material_correction is True:
-            sub_ref = self.getSubEquipment(pf.reference_material_id)
-            fbm_ref = self.queryPurchaseBySubEquip(sub_ref).fbm
+        else:
+            pressure_factor = 1
+            # ... mas tenha correção de material
 
-        base_cost = round(self.baseCost(pf, data, fbm), 2)
+        if guide.material_correction is True and guide.fbm is True:
+            fbm = self.getFbm(pf, False, False)
+            # sub_ref = self.getSubEquipment(pf.reference_material_id)
+            fbm_ref = self.getFbm(pf, True, False)
+
+        elif guide.material_correction is False and guide.fbm is True:
+            fbm = self.getFbm(pf, False, False)
+            # Fatores Padrões de bm, para caso não haja correção de material ou pressão
+            fbm_ref = fbm
+
+        elif guide.material_correction is True and guide.fbm is False:
+            fbm = self.getFbm(pf, False, True)
+            fbm_ref = self.getFbm(pf, True, True)
+
+        base_cost = round(self.baseCost(pf, data), 2)
+
         # Calculo dos custos e bare modules...
         material_factor = (pf.fbm / fbm_ref)
 
         # Preço fob corrigido pelo material
         self.purchase_equipment_cost = round((base_cost * material_factor) * pressure_factor, 2)
         # BareModule to material
-        self.bare_module_cost = round(self.bareModuleCost(base_cost, pf) * pressure_factor, 2)
+        self.bare_module_cost = round(self.bareModuleCost(base_cost, pf, guide) * pressure_factor, 2)
         # Equipment Cost do equipamento CS
         self.base_equipment_cost = round(base_cost, 2)
         # Bare Module do equipamento CS
@@ -246,21 +282,12 @@ class GenericEquipment(EspecialEquipmentsMethods):
         # Base cost, estimativa inicial -> Para resumo simplificado. Rever necessidade depois
         self.base_cost = round(base_cost, 2)
 
-    def fbmByEquation(self):
-        pass
-
-    def specificCalculateCost(self, data):
-        # importar aqui depois todos os dados de todas as tabelas desse equipamento
-
-        self.purchase_factor = self.queryPurchaseBySubEquip(self.subequipment)
-        # Preço fob corrigido pelo material
-        self.purchase_equipment_cost = 0
-        # BareModule to material
-        self.bare_module_cost = 0
-        # Equipment Cost do equipamento CS
-        self.base_equipment_cost = 0
-        # Bare Module do equipamento CS
-        self.base_bare_module_cost = 0
-        # Base cost, estimativa inicial -> Para resumo simplificado. Rever necessidade depois
-        self.base_cost = 0
-        pass
+    def exportCosts(self) -> dict:
+        return {
+            # "purchase_factor": self.purchase_factor,
+            "purchase_equipment_cost": self.purchase_equipment_cost,
+            "bare_module_cost": self.bare_module_cost,
+            "base_equipment_cost": self.base_equipment_cost,
+            "base_bare_module_cost": self.base_bare_module_cost,
+            # "base_cost": self.base_cost
+        }

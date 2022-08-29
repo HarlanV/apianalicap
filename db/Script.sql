@@ -103,7 +103,7 @@ SET pf.reference_material_id = (
 	and nsub.material="CS"
 )
 WHERE sub.material <> "CS"
-and e.id =3;
+and e.id =11;
 
 
 SELECT pf.id, pf.subequipment_id, cb.fbm FROM purchase_factor as pf
@@ -132,8 +132,6 @@ ON e.id = sub.equipment_id
 WHERE e.id=3
 ;
 
-
-
 UPDATE purchase_factor pf
 LEFT JOIN sub_equipment as sub
 on sub.id = pf.subequipment_id
@@ -147,19 +145,27 @@ SET pf.reference_material_id = (
 	and nsub.material="CS"
 )
 WHERE sub.material <> "CS"
-and e.id =3;
+and e.id =11;
 
 SELECT pf.id, pf.fbm, sub.description, sub.material, e.name, pf.reference_material_id FROM purchase_factor AS pf
 LEFT JOIN sub_equipment as sub
 on sub.id = pf.subequipment_id
 LEFT JOIN equipment AS e
 ON e.id = sub.equipment_id
-WHERE sub.material <> "CSS"
+WHERE sub.material <> "CS"
 AND sub.material <> "N/D"
 AND e.id = 3
 ;
 
-;
+DELETE pf.* 
+FROM pressure_factor as pf
+left join sub_equipment as sub
+on sub.id = pf.subequipment_id
+left join equipment as e
+on e.id = sub.equipment_id
+WHERE e.id = 9 
+and pf.id > 100;
+and sub.description LIKE '%Axial%';
 
 
 

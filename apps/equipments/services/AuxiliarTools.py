@@ -42,3 +42,33 @@ class Services():
 
     def getUnityConversor(self, id):
         return PhysicalUnit.objects.get(id=id).convert_factor
+
+
+class AppErrorMessages():
+
+    def __init__(self, chooseLanguage="EN") -> None:
+
+        languages = {
+            "EN": 1,
+            "PT-BR": 2
+        }
+
+        self.language = languages[chooseLanguage]
+
+    def estimative(self):
+        erro_message = "Não foi possível fazer a estimativa. "
+        return erro_message
+
+        if equipment_id != self.subequipment.equipment.id:
+            message = erro_message + "O equipamento " + self.equipment.name + " não possui a opção '" + self.subequipment.description + "' (id:" + str(self.subequipment.id) + "). Favor verificar."
+            raise ValueError(message)
+
+        elif data["dimension"] > se.max_dimension:
+            message = erro_message + "O valor informado foi acima do permitido (" + str(se.max_dimension) + self.equipment.dimension.unity + ")"
+            raise ValueError(message)
+
+        elif data["dimension"] < se.min_dimension:
+            message = erro_message + "O valor informado foi abaixo do permitido (" + str(se.min_dimension) + self.equipment.dimension.unity + ")"
+            raise ValueError(message)
+        elif 'pressure' not in data.keys() and self.hasPressure() is True:
+            message = erro_message + "Confira se todos as informações necessárias foram enviadas."

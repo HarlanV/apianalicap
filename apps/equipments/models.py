@@ -42,8 +42,9 @@ class Equipment(models.Model):
     dimension = models.ForeignKey(PhysicalUnit, on_delete=models.CASCADE)
     symbol = models.CharField(max_length=10, null=True, blank=True)
     utility_form = models.CharField(max_length=30, null=True, blank=True)
-    active = models.BooleanField(default=True, null=True, blank=True)
+    usable = models.BooleanField(default=True, null=True, blank=True)
     num_of_subequipments = models.IntegerField(blank=True, null=True)
+    hasSpecial = models.BooleanField(default=False, null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -121,8 +122,7 @@ class MaterialFactor(models.Model):
         db_table = "material_factor"
 
 
-# Tabela Auxiliar para calculo do Cbm
-class BareModuleCostFactor(models.Model):
+class CostMethodsGuide(models.Model):
     fbm = models.BooleanField(null=True)
     fpressure = models.BooleanField(null=True)
     material_correction = models.BooleanField(null=True)
@@ -130,12 +130,13 @@ class BareModuleCostFactor(models.Model):
     subequipment = models.ForeignKey(SubEquipment, on_delete=models.CASCADE)
     material_field_name = models.CharField(max_length=100, null=True)
     pressure_field_name = models.CharField(max_length=100, null=True)
+    special_function_name = models.CharField(max_length=100, null=True)
 
     def __str__(self):
-        return str(self.subequipment) + " bmcf"
+        return str(self.subequipment) + " method_guide"
 
     class Meta:
-        db_table = "baremodule_cost_factor"
+        db_table = "cost_factors_guide"
 
 
 # Constantes complementares e auxiliares de equipamentos
@@ -152,36 +153,3 @@ class ComplementConstants(models.Model):
         db_table = "equipment_complement_constants"
 
 
-class EspecialEquipmentsMethods():
-
-    def __init__(self) -> None:
-        pass
-
-    def calculateCosts(self, equipment):
-
-        # mapeamento de casos especiais
-        if equipment.id == 11:
-            return self.firedHeatersMethod
-
-    def especialFormSubequiments(self, equipment: Equipment, form: dict) -> dict:
-
-        if equipment.id == 11:
-            form["steam_superheat"] = "(Steam Based) decimal, °C;"
-            return form
-
-        return form
-
-    # Deixar como privado depois
-    def firedHeatersMethod(self):
-        pass
-
-    def baseCost(self):
-        pass
-
-    def calculateCostsNoFbm(self, data):
-        b1 = 1
-        b2 = 1
-        fm = 1
-        fp = 1
-        fbm = (b1 + (b2 * fm * fp))
-        base_cost = round(self.baseCost(pf, data, fbm), 2)

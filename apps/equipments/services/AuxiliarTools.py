@@ -4,6 +4,7 @@ from django.forms.models import model_to_dict
 from equipments.services.dev_suport import teste_print
 from equipments.models import PhysicalUnit
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models.query import QuerySet
 
 
 class Services():
@@ -11,14 +12,14 @@ class Services():
     def __init__(self) -> None:
         pass
 
-    def querySetToDict(self, qs, id="id") -> dict:
+    def querySetToDict(self, qs: QuerySet, dict_id: str = "id") -> dict:
         """
         Função auxiliar para converter um QuerySet em dicionario
         obs: Não sendo utilizada no momento
         """
         var = {}
         for q in qs.values():
-            var[q[id]] = dict(q)
+            var[q[dict_id]] = dict(q)
         return var
 
     def querysetSerialize(self, data) -> str:

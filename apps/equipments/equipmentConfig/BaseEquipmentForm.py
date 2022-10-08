@@ -3,11 +3,13 @@ from equipments.services.dev_suport import teste_print
 from equipments.equipmentConfig.BaseEquipment import BaseEquipment
 from equipments.services.AuxiliarTools import Services
 from equipments.equipmentConfig.SpecialEquipment import SpecialEquipmentCost, SpecialEquipmentForm
+from django.db.models.query import QuerySet
+from typing import Union
 
 
 class BaseEquipmentForm(BaseEquipment):
 
-    def __init__(self, id) -> None:
+    def __init__(self, id: int) -> None:
         self.id = id
         self.setEquipment(id)
         self.equipment = self.getEquipment()
@@ -25,32 +27,39 @@ class BaseEquipmentForm(BaseEquipment):
         equipmentGuides = self.listEquipmentMethodsGuide()
         guide = Services().querySetToDict(equipmentGuides, "subequipment_id")
 
-        self.has_pressure = False
         self.has_special = False
         form = {}
         qsetPressure = self.listEquipmentPressureFactor()
         pfactor = None
         if bool(qsetPressure):
-            pfactor = Services().querySetToDict(qsetPressure, "subequipment_id")
+            pfactor = qsetPressure
+            pass
+            # aqui está perdendo informação em caso de pressão duplicada
+            # pfactor = Services().querySetToDict(qsetPressure, "subequipment_id")
+            # teste_print(pfactor)
 
         for sb in self.subequipmentsList:
+            teste_print
             form[sb.id] = self.detailSubequipment(sb, guide, pfactor)
 
         return form
 
-    def detailSubequipment(self, subequipment: SubEquipment, guide: dict, pfactor) -> dict:
+    def detailSubequipment(self, subequipment: SubEquipment, guide: dict, pfactor: Union[QuerySet[PressureFactor], None]) -> dict:
         guide = guide[subequipment.id]
         detail = {}
         if self.equipment.hasSpecial is True:
             auxiliar = BaseEquipmentForm(self.id)
+            # [TODO]: Ver pressão aqui também. Problema com maxima e minima no dict.
             detail = SpecialEquipmentForm(self.equipment, auxiliar).getDescription(subequipment, guide, pfactor)
         else:
+            
+            # teste_print(pfactor)
             detail = self.generalSubequipmentDetail(subequipment, guide, pfactor)
             pass
 
         return detail
 
-    def generalSubequipmentDetail(self, subequipment: SubEquipment, guide: dict, pfactor) -> dict:
+    def generalSubequipmentDetail(self, subequipment: SubEquipment, guide: dict, pfactor: Union[QuerySet[PressureFactor], None]) -> dict:
         equipment = self.getEquipment()
         dimension = equipment.dimension.dimension.dimension.lower()
         unity = self.equipment.dimension.unity
@@ -67,10 +76,18 @@ class BaseEquipmentForm(BaseEquipment):
         if guide["material_correction"] is True:
             form["material"] = subequipment["material"]
 
-        if guide["fpressure"] is True and bool(pfactor):
+        pfactor = pfactor.filter(subequipment_id=subequipment["id"])
+        pmax = 0
+        pmin = 0
+
+        if guide["fpressure"] is True and pfactor.count() >= 1:
+            for p in pfactor.values():
+                pmax = p["pressure_max"] if (p["pressure_max"] > pmax) else pmax
+                pmin = p["pressure_min"] if (p["pressure_min"] < pmin) else pmin
+
             pName = guide["pressure_field_name"]
-            form["max_" + pName] = pfactor[subequipment["id"]]["pressure_max"]
-            form["min_" + pName] = pfactor[subequipment["id"]]["pressure_min"]
+            form["max_" + pName] = pmax
+            form["min_" + pName] = pmin
 
         return form
 
@@ -98,6 +115,11 @@ class BaseEquipmentForm(BaseEquipment):
 
             newFields = SpecialEquipmentForm(self.equipment, BaseEquipmentForm(self.id)).getDescription(self.equipment, guide)
             userGuide.update(newFields)
+        else:
+            spares = {
+                "spares": "int [optional]"
+            }
+            userGuide.update(spares)
 
         return userGuide
 

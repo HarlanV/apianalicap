@@ -14,9 +14,26 @@ class BaseEquipmentCost(BaseEquipment):
 
     def setBaseEstimativeVars(self, data: dict) -> None:
         self.setSubequipment(data["id"])
-        self.subequipment = self.subequipment = self.getSubequipment()
+        self.subequipment = self.getSubequipment()
         self.setSubequipmentMethodsGuide(self.getSubequipment())
         self.setPurchaseFactor(self.getSubequipment())
+        self.data = self.renameDataVar(data)
+
+    def renameDataVar(self, data: dict) -> dict:
+        """
+        Rename the received values to match the pattern
+        """
+        equipment = self.getEquipment()
+        dimension = equipment.dimension.dimension.dimension.lower()
+        try:
+            data["dimension"] = data[(dimension)]
+        except KeyError as e:
+            message = dimension + " argument is missing."
+            raise TypeError(message)
+        guide = self.getSubequipmentMethodsGuide()
+        if guide.pressure_field_name is not None and guide.pressure_field_name in data.keys():
+            data["pressure"] = data[guide.pressure_field_name]
+        return data
 
     def baseCost(self, pf: PurchasedFactor, data: dict) -> float:
         cost = self.fobEstimate(data, pf)
@@ -34,30 +51,43 @@ class BaseEquipmentCost(BaseEquipment):
         return cost
 
     # Consulta e retorna fator de pressã0
-    def setPressureFactor(self, subequipment: SubEquipment, pressure: float) -> float:
+    def subequipmentPressureFactor(self, subequipment: SubEquipment, pressure: float) -> float:
         """
         Consulta e retorna as constantes relativas ao custo de compra FOB do equipamento
         """
-        # p = PressureFactor.objects.filter(subequipment=subequipment, pressure_max__gte=pressure, pressure_min__lte=pressure).get()
-        p = super().getPressureFactor(subequipment, pressure)
-        results = p.count()
+        # pf = PressureFactor.objects.filter(subequipment=subequipment, pressure_max__gte=pressure, pressure_min__lte=pressure).all()
+        pf = super().queryPressureFactor(subequipment, pressure)
+
+        results = pf.count()
         if results < 1:
             raise ValueError("Valores de pressão incorretos ou não encontrados. Por favor, verifique as especificações.")
         elif results > 1:
             # Resultado exatamente no limiar. Escolhe-se o superior aumentando em 1% a presão
             pressure = pressure + pressure * 0.01
-            self.pressureFactor = self.queryPressureFactor(subequipment, pressure)
+            # chama a si mesmo, com o valor de pressão ajustado
+            self.pressureFactor = self.subequipmentPressureFactor(subequipment, pressure)
         else:
-            self.pressureFactor = p.get()
+            self.setPressureFactor(pf.get())
 
-        return self.pressureFactor
+        return self.getPressureFactor()
 
-    def checkEstimativeConditions(self, data: dict, equipment_id, guide: CostMethodsGuide) -> dict:
+    def checkMandatoryArguments(self, data):
+        guide = self.getSubequipmentMethodsGuide()
 
+        if guide.fpressure is True and "pressure" not in data:
+            raise TypeError("'pressure' value was expected")
+
+    def checkUserInputedData(self):
+        pass
+
+    def checkEstimativeConditions(self, data: dict) -> dict:
+
+        teste = self.checkMandatoryArguments(data)
+        data = self.data
         se = self.getSubequipment()
-        teste_print(se)
+        equipment = self.getEquipment()
+        equipment_id = equipment.id
 
-        # dimension = data[(self.equipment.dimension.dimension.dimension.lower())]
         erro_message = "Não foi possível fazer a estimativa. "
 
         if equipment_id != se.equipment.id:
@@ -72,7 +102,7 @@ class BaseEquipmentCost(BaseEquipment):
             message = erro_message + "O valor informado foi abaixo do permitido (" + str(se.min_dimension) + self.equipment.dimension.unity + ")"
             raise ValueError(message)
 
-        elif 'pressure' not in data.keys() and self.hasPressure() is True:
+        elif 'pressure' not in data.keys() and self.subequipmentHasPressure() is True:
             message = erro_message + "Confira se todos as informações necessárias foram enviadas."
             raise ValueError(message)
 
@@ -88,7 +118,7 @@ class BaseEquipmentCost(BaseEquipment):
             pass
         return inflation
 
-    def getFbm(self, pf, isRef: bool, calculate: bool) -> float:
+    def getFbm(self, pf: PurchasedFactor, isRef: bool, calculate: bool) -> float:
         """
         isRef: bool = is the equipment made of CS and/or operating at normal conditions ?
         calculate: should be calculate by the equation ?
@@ -100,7 +130,7 @@ class BaseEquipmentCost(BaseEquipment):
         # fbm tabelado em ambiente e CS
         elif calculate is False and isRef is True:
             sub_ref = self.getSubequipment(pf.reference_material_id)
-            fbm = self.getPurchaseBySubequip(sub_ref).fbm
+            fbm = self.getPurchaseFactor(sub_ref).fbm
         # fbm calculado do material desejado
         elif calculate is True and isRef is False:
             fbm = self.calculateFbm(self.data, False)
@@ -179,8 +209,8 @@ class BaseEquipmentCost(BaseEquipment):
         return (cost * fbm)
 
     def pressureFactorCalc(self, subequipment: SubEquipment, pressure: float):
-
-        pf_const = self.queryPressureFactor(subequipment, pressure)
+        self.subequipmentPressureFactor(subequipment, pressure)
+        pf_const = self.getPressureFactor()
 
         # bar -> unidade de calculo
         conversor = Services().getUnityConversor(pf_const.unityReference_id)

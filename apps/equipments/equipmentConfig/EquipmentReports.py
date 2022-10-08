@@ -11,6 +11,8 @@ class EquipmentReports(EquipmentCost):
         if args is None:
             super().__init__(id)
         else:
+            # teste
+            raise("Teste de args")
             super().__init__(id, args)
         self.id = id
 
@@ -37,14 +39,13 @@ class EquipmentReports(EquipmentCost):
         # definindo o subequipment e conferindo dados recebidos do usuario
 
         try:
+
+            # Todos os atributos nescessários forma devidamente setados, não sendo preciso
             self.setBaseEstimativeVars(data)
 
-            data["dimension"] = data[(dimension)]        
-            guide = self.getSubequipmentMethodsGuide()
-            if guide.pressure_field_name is not None and guide.pressure_field_name in data.keys():
-                data["pressure"] = data[guide.pressure_field_name]
-
-            self.checkEstimativeConditions(data, id, guide)
+            # Corrige a variável para utlizar a formatada pelo função setBaseEstimativeVars
+            data = self.data
+            self.checkEstimativeConditions(data)
 
         except ValueError as ve:
             data = {"message": ve.args[0]}

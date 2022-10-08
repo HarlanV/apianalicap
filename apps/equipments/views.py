@@ -1,5 +1,5 @@
 
-from django.http import HttpResponse
+from django.http import (HttpResponse, HttpResponseNotAllowed)
 from django.shortcuts import render
 from django.views.generic import View
 from equipments.services.EquipmentService import EquipmentService
@@ -83,6 +83,8 @@ class EquipmentApi(View):
             data_form = json.loads(request.body.decode("utf-8"))["data"]
             data = self.postCreateEquipment(id, data_form)
             data = self.service.sampleDictSerialize(data)
+        else:
+            return HttpResponseNotAllowed(['GET', 'POST'])
         return HttpResponse(
             data,
             content_type="application/json"

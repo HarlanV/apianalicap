@@ -49,6 +49,12 @@ class Equipment(models.Model):
     def __str__(self):
         return self.name
 
+    def subequipments(equipment_id):
+        teste_print("Entrou aqui")
+        teste = SubEquipment.objects.filter(equipment=equipment_id)
+        teste_print(teste)
+        return teste
+
     class Meta:
         db_table = "equipment"
 

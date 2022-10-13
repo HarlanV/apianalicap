@@ -68,6 +68,9 @@ class BaseEquipment():
         """
         Retuns a list of all subequipments of an equipments
         """
+        teste = Equipment.subequipments(equipment_id)
+        teste_print(teste)
+        return teste
         return SubEquipment.objects.filter(equipment=equipment_id)
 
     # Returns a list of all Pressure Factors (model PressureFactor) related to this equipment. If no equipment was provided,

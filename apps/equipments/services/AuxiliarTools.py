@@ -1,4 +1,3 @@
-
 import json
 from django.forms.models import model_to_dict
 from equipments.services.dev_suport import teste_print
@@ -7,7 +6,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 
 
-class Services():
+class Tools():
 
     def __init__(self) -> None:
         pass

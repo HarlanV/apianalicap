@@ -50,10 +50,7 @@ class Equipment(models.Model):
         return self.name
 
     def subequipments(equipment_id):
-        teste_print("Entrou aqui")
-        teste = SubEquipment.objects.filter(equipment=equipment_id)
-        teste_print(teste)
-        return teste
+        return SubEquipment.objects.filter(equipment=equipment_id)
 
     class Meta:
         db_table = "equipment"

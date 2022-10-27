@@ -23,11 +23,6 @@ class Form(BasicForm):
     def specialFormModel(self, baseForm: dict) -> dict:
         return baseForm
 
-    # [TODO]: Solução rapida para problema de bomba. Rever o banco
-    # Problema: apesar de possuir pressão maxima, não está sendo usado no calculo.
-    def insertSubPressure(self, sb: SubEquipment, info: dict, guide: dict, pfactor) -> dict:
-        return info
-
 
 class Cost(BasicCost):
 
@@ -43,12 +38,3 @@ class Cost(BasicCost):
 
         # formata no padrão que deve ser retornado
         return self.exportCosts()
-
-    def calculateFbm(self, data: dict, isRef: bool) -> float:
-        factors = MaterialFactor.objects.filter(subequipment=self.subequipment).get()
-        b1 = factors.b1
-        b2 = factors.b2
-        fm = factors.fm
-        fp = 1
-        fbm = b1 + (b2 * fm * fp)
-        return fbm

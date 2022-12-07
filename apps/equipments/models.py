@@ -64,9 +64,11 @@ class SubEquipment(models.Model):
     min_dimension = models.FloatField(null=True)
     equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE)
     isSolid = models.BooleanField(default=True, null=True, blank=True)
+    # temporaryTracker = models.IntegerField(null=True, blank=True)
+    # materialTracker = models.IntegerField(null=True, blank=True)
 
     class Meta:
-        db_table = "sub_equipment"
+        db_table = "subequipment"
 
     def __str__(self):
         return str(self.description + "(" + self.material + ")")

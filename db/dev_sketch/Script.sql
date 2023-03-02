@@ -181,9 +181,6 @@ on cpf.equipment_id = ce.id;
 where cmf.equipment_id = 22;
 
 
-
-
-
 SELECT cmf.id, cmf.b1, cmf.fm,cmf.material, cpf.id, cpf.k1, cpf.material, cpf.description , ce.name
 from teste_tcc.capex_material_factor as cmf 
 LEFT JOIN  teste_tcc.capex_purchase_factor as cpf

@@ -33,8 +33,8 @@ class Form():
         equipmentGuides = self.listEquipmentMethodsGuide()
         equipmentGuides = Tools().querySetToDict(equipmentGuides, "subequipment_id")
         self.equipmentGuides = equipmentGuides
-        dimension = self.equipment.dimension.dimension.dimension.lower()
-        unity = self.equipment.dimension.unity
+        dimension = self.equipment.dimension.dimension.lower()
+        # unity = self.equipment.dimension.unity
         form = {}
         qsetPressure = self.listEquipmentPressureFactor()
         teste_print(Tools().querySetToDict(qsetPressure))
@@ -49,7 +49,7 @@ class Form():
                 'subtype': subequipment["description"],
                 (dimension + ' max'): subequipment["max_dimension"],
                 (dimension + ' min'): subequipment["min_dimension"],
-                (dimension + ' unity'): unity,
+                (dimension + ' unity'): sb.default_physical_unit.unity,
             }
 
             info = self.insertSubMaterial(sb, info, equipmentGuides)
@@ -77,11 +77,11 @@ class Form():
         return info
 
     def __baseFormModel(self) -> dict:
-        dimension = self.equipment.dimension.dimension.dimension.lower()
+        dimension = self.equipment.dimension.dimension.lower()
         userGuide = {
             "id": "int",
             "spares": "int [optional]",
-            dimension: f"decimal ({self.equipment.dimension.unity})",
+            dimension: f"decimal ()",
         }
 
         for guide in self.equipmentGuides.values():
@@ -151,6 +151,7 @@ class BasicCost():
     def checkFields(self, data: dict) -> None:
         self.data = self.basicCheck(data)
         self.data = self.checkPressure(data)
+        teste_print(self.data)
 
     def listEquipmentPressureFactor(self, subequipment=None) -> QuerySet[PressureFactor]:
         """
@@ -196,21 +197,20 @@ class BasicCost():
 
     def basicCheck(self, data) -> dict:
         erro_message = "Não foi possível fazer a estimativa. "
-        dimension = self.equipment.dimension.dimension.dimension.lower()
+        dimension = self.equipment.dimension.dimension.lower()
         se = self.subequipment
         if self.equipment_id != se.equipment.id:
             message = erro_message + "O equipamento " + self.equipment.name + " não possui a opção '" + self.subequipment.description + "' (id:" + str(self.subequipment.id) + "). Favor verificar."
             raise ValueError(message)
-
         if dimension not in data:
             raise TypeError(f"{erro_message} O campo {dimension} está faltando.")
         data["dimension"] = data[(dimension)]
 
         if data["dimension"] > se.max_dimension:
-            message = erro_message + "O valor informado foi acima do permitido (" + str(se.max_dimension) + self.equipment.dimension.unity + ")"
+            message = erro_message + "O valor informado foi acima do permitido (" + str(se.max_dimension) + self.subequipment.default_physical_unit.unity + ")"
             raise ValueError(message)
         elif data["dimension"] < se.min_dimension:
-            message = erro_message + "O valor informado foi abaixo do permitido (" + str(se.min_dimension) + self.equipment.dimension.unity + ")"
+            message = erro_message + "O valor informado foi abaixo do permitido (" + str(se.min_dimension) + self.subequipment.default_physical_unit.unity + ")"
             raise ValueError(message)
         self.data = data
         return data
@@ -302,6 +302,7 @@ class BasicCost():
     def costEstimative(self):
 
         # Neste ponto, todas as conversões e alterações devem ter sido finalizadas em checkFields().
+        print(self.data)
 
         data = self.data
         # Retorna tabela booleana de configuração para calculo do baremodule

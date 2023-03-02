@@ -39,7 +39,7 @@ class Equipment(models.Model):
     Model with Equipments Model
     """
     name = models.CharField(max_length=300)
-    dimension = models.ForeignKey(PhysicalUnit, on_delete=models.CASCADE)
+    dimension = models.ForeignKey(Dimension, on_delete=models.CASCADE)
     symbol = models.CharField(max_length=10, null=True, blank=True)
     utility_form = models.CharField(max_length=30, null=True, blank=True)
     usable = models.BooleanField(default=True, null=True, blank=True)
@@ -62,6 +62,7 @@ class SubEquipment(models.Model):
     description = models.CharField(max_length=100, null=True)
     max_dimension = models.FloatField(null=True)
     min_dimension = models.FloatField(null=True)
+    default_physical_unit = models.ForeignKey(PhysicalUnit, on_delete=models.CASCADE)
     equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE)
     isSolid = models.BooleanField(default=True, null=True, blank=True)
     # temporaryTracker = models.IntegerField(null=True, blank=True)
@@ -156,5 +157,3 @@ class ComplementConstants(models.Model):
 
     class Meta:
         db_table = "equipment_complement_constants"
-
-
